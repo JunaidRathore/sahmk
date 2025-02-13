@@ -40,7 +40,7 @@ const OnboardingScreen = () => {
   const Indicator = () => {
     return (
       <View style={styles.indicatorContainer}>
-        {[...Array(3)].map((_, index) => (
+        {[...Array(2)].map((_, index) => (
           <View
             key={index}
             style={[
