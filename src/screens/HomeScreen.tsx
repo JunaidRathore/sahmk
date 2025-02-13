@@ -1,26 +1,42 @@
 // src/screens/HomeScreen.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TextInput,
-  TouchableOpacity,
   Dimensions,
   LayoutChangeEvent,
-  ScrollView
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/Feather';
-import { COLORS } from '../constants/theme';
+import AnimatedButton from '../components/AnimatedButton';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const HomeScreen = () => {
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
   const [chartWidth, setChartWidth] = useState(SCREEN_WIDTH - 40);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
+
+  // Animation values
+  const headerOpacity = useSharedValue(0);
+  const searchBarTranslateX = useSharedValue(-SCREEN_WIDTH);
+  const chartScale = useSharedValue(0.9);
+  const chartOpacity = useSharedValue(0);
+  const navTranslateY = useSharedValue(50);
 
   const data = {
     labels: ['1D', '1W', '1M', '3M', '1Y', 'YTD', '5Y', 'Max'],
@@ -31,6 +47,36 @@ const HomeScreen = () => {
         strokeWidth: 2
       }
     ]
+  };
+
+  useEffect(() => {
+    startEntryAnimations();
+  }, []);
+
+  const startEntryAnimations = () => {
+    headerOpacity.value = withTiming(1, { duration: 600 });
+    searchBarTranslateX.value = withDelay(
+      300,
+      withSpring(0, {
+        damping: 15,
+        stiffness: 100
+      })
+    );
+    chartScale.value = withDelay(
+      600,
+      withSpring(1, {
+        damping: 15,
+        stiffness: 100
+      })
+    );
+    chartOpacity.value = withDelay(600, withTiming(1, { duration: 400 }));
+    navTranslateY.value = withDelay(
+      900,
+      withSpring(0, {
+        damping: 15,
+        stiffness: 100
+      })
+    );
   };
 
   const handleChartLayout = useCallback((event: LayoutChangeEvent) => {
@@ -44,37 +90,56 @@ const HomeScreen = () => {
   }, []);
 
   const getChartHeight = () => {
-    // Responsive chart height based on screen size
-    return SCREEN_HEIGHT * 0.3; // 30% of screen height
+    return SCREEN_HEIGHT * 0.3;
   };
+
+  // Animated styles
+  const headerAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: headerOpacity.value
+  }));
+
+  const searchBarAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: searchBarTranslateX.value }]
+  }));
+
+  const chartAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: chartOpacity.value,
+    transform: [{ scale: chartScale.value }]
+  }));
+
+  const navAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: navTranslateY.value }]
+  }));
 
   return (
     <SafeAreaView style={styles.container} onLayout={handleContainerLayout}>
-      <ScrollView
+      <AnimatedScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <AnimatedView style={[styles.header, headerAnimatedStyle]}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity style={styles.iconButton}>
+            <AnimatedButton style={styles.iconButton}>
               <Icon name='bell' size={24} color='#fff' />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
+            </AnimatedButton>
+            <AnimatedButton style={styles.iconButton}>
               <Icon name='search' size={24} color='#fff' />
-            </TouchableOpacity>
+            </AnimatedButton>
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.welcomeText}>تحتاج مساعدة؟</Text>
             <Text style={styles.userName}>هلا، عبدالرحمن</Text>
           </View>
-        </View>
+        </AnimatedView>
 
-        <Text style={styles.sectionTitle}>الرئيسية</Text>
+        <Animated.Text style={[styles.sectionTitle, headerAnimatedStyle]}>
+          الرئيسية
+        </Animated.Text>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <AnimatedView style={[styles.searchContainer, searchBarAnimatedStyle]}>
           <Icon
             name='search'
             size={20}
@@ -86,10 +151,13 @@ const HomeScreen = () => {
             placeholder='اسم السهم أو الرمز'
             placeholderTextColor='#666'
           />
-        </View>
+        </AnimatedView>
 
         {/* Chart Section */}
-        <View style={styles.chartContainer} onLayout={handleChartLayout}>
+        <AnimatedView
+          style={[styles.chartContainer, chartAnimatedStyle]}
+          onLayout={handleChartLayout}
+        >
           <Text style={styles.chartTitle}>أدوات سهمك</Text>
           <LineChart
             data={data}
@@ -130,13 +198,25 @@ const HomeScreen = () => {
             contentContainerStyle={styles.timeframeScrollContent}
           >
             {data.labels.map((label) => (
-              <TouchableOpacity
+              <AnimatedButton
                 key={label}
                 style={[
                   styles.timeframeButton,
                   selectedTimeframe === label && styles.timeframeButtonActive
                 ]}
-                onPress={() => setSelectedTimeframe(label)}
+                onPress={() => {
+                  setSelectedTimeframe(label);
+                  chartScale.value = withSpring(
+                    0.95,
+                    {
+                      damping: 10,
+                      stiffness: 100
+                    },
+                    () => {
+                      chartScale.value = withSpring(1);
+                    }
+                  );
+                }}
               >
                 <Text
                   style={[
@@ -146,30 +226,30 @@ const HomeScreen = () => {
                 >
                   {label}
                 </Text>
-              </TouchableOpacity>
+              </AnimatedButton>
             ))}
           </ScrollView>
-        </View>
-      </ScrollView>
+        </AnimatedView>
+      </AnimatedScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
+      <AnimatedView style={[styles.bottomNav, navAnimatedStyle]}>
+        <AnimatedButton style={styles.navItem}>
           <Icon name='user' size={24} color='#666' />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        </AnimatedButton>
+        <AnimatedButton style={styles.navItem}>
           <Icon name='file-text' size={24} color='#666' />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        </AnimatedButton>
+        <AnimatedButton style={styles.navItem}>
           <Icon name='box' size={24} color='#666' />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        </AnimatedButton>
+        <AnimatedButton style={styles.navItem}>
           <Icon name='layers' size={24} color='#666' />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
+        </AnimatedButton>
+        <AnimatedButton style={[styles.navItem, styles.navItemActive]}>
           <Icon name='home' size={24} color='#4CAF50' />
-        </TouchableOpacity>
-      </View>
+        </AnimatedButton>
+      </AnimatedView>
     </SafeAreaView>
   );
 };
@@ -183,7 +263,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   scrollContent: {
-    paddingBottom: 80 // Space for bottom nav
+    paddingBottom: 80
   },
   header: {
     flexDirection: 'row',
