@@ -1,4 +1,5 @@
 export type RootStackParamList = {
   Onboarding: undefined;
-  Home: undefined;
+  Home: { searchText?: string } | undefined;
+  Search: undefined;
 };

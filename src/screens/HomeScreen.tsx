@@ -7,10 +7,16 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
+  TouchableOpacity,
   View
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import {
+  NavigationProp,
+  RouteProp,
+  useNavigation,
+  useRoute
+} from '@react-navigation/native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -20,16 +26,22 @@ import Animated, {
 } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/Feather';
 import AnimatedButton from '../components/AnimatedButton';
+import { RootStackParamList } from '../types/navigation';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
+type HomeScreenNavigationProp = NavigationProp<RootStackParamList, 'Home'>;
+
 const HomeScreen = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Home'>>();
   const [containerWidth, setContainerWidth] = useState(SCREEN_WIDTH);
   const [chartWidth, setChartWidth] = useState(SCREEN_WIDTH - 40);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
+  const [searchText, setSearchText] = useState('');
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -52,6 +64,12 @@ const HomeScreen = () => {
   useEffect(() => {
     startEntryAnimations();
   }, []);
+
+  useEffect(() => {
+    if (route.params?.searchText) {
+      setSearchText(route.params.searchText);
+    }
+  }, [route.params?.searchText]);
 
   const startEntryAnimations = () => {
     headerOpacity.value = withTiming(1, { duration: 600 });
@@ -93,6 +111,10 @@ const HomeScreen = () => {
     return SCREEN_HEIGHT * 0.3;
   };
 
+  const handleSearchPress = () => {
+    navigation.navigate('Search');
+  };
+
   // Animated styles
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value
@@ -124,7 +146,10 @@ const HomeScreen = () => {
             <AnimatedButton style={styles.iconButton}>
               <Icon name='bell' size={24} color='#fff' />
             </AnimatedButton>
-            <AnimatedButton style={styles.iconButton}>
+            <AnimatedButton
+              style={styles.iconButton}
+              onPress={handleSearchPress}
+            >
               <Icon name='search' size={24} color='#fff' />
             </AnimatedButton>
           </View>
@@ -146,11 +171,28 @@ const HomeScreen = () => {
             color='#666'
             style={styles.searchIcon}
           />
-          <TextInput
+          <TouchableOpacity
             style={styles.searchInput}
-            placeholder='اسم السهم أو الرمز'
-            placeholderTextColor='#666'
-          />
+            onPress={handleSearchPress}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.searchPlaceholder,
+                searchText ? styles.searchText : null
+              ]}
+            >
+              {searchText || 'اسم السهم أو الرمز'}
+            </Text>
+          </TouchableOpacity>
+          {searchText ? (
+            <TouchableOpacity
+              onPress={() => setSearchText('')}
+              style={styles.clearButton}
+            >
+              <Icon name='x-circle' size={18} color='#666' />
+            </TouchableOpacity>
+          ) : null}
         </AnimatedView>
 
         {/* Chart Section */}
@@ -320,9 +362,20 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
-    padding: 12,
-    textAlign: 'right'
+    justifyContent: 'center',
+    height: '100%'
+  },
+  searchPlaceholder: {
+    color: '#666',
+    textAlign: 'right',
+    fontSize: 14,
+  },
+  searchText: {
+    color: '#fff'
+  },
+  clearButton: {
+    padding: 8,
+    marginLeft: 8
   },
   chartContainer: {
     backgroundColor: '#1E1E1E',

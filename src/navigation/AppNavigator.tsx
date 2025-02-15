@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
+import SearchScreen from '../screens/SearchScreen';
 
 const Stack = createStackNavigator();
 
@@ -40,6 +41,14 @@ const AppNavigator = () => {
           <Stack.Screen name='Onboarding' component={OnboardingScreen} />
         ) : null}
         <Stack.Screen name='Home' component={HomeScreen} />
+        <Stack.Screen
+          name='Search'
+          component={SearchScreen}
+          options={{
+            presentation: 'modal',
+            animation: 'fade_from_bottom'
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
